@@ -192,6 +192,74 @@ default via 10.0.2.2 dev eth0 proto dhcp src 10.0.2.15 metric 100
 
 **Conclusão:** o endereço IPv4 e a rota da rede interna permaneceram após reiniciar. A rota padrão continuou pelo adaptador NAT. A comunicação com outra máquina do laboratório ainda será testada.
 
+### 05 — Adição do servidor Ubuntu
+
+Foi criada a máquina virtual `ubuntu-lab` com Ubuntu Server e dois adaptadores de rede:
+
+| Interface | Modo no VirtualBox | IPv4 |
+| :--- | :--- | :--- |
+| `enp0s3` | NAT | `10.0.2.15/24` |
+| `enp0s8` | Rede Interna — `lab-cyber` | `192.168.77.20/24` |
+
+O serviço OpenSSH foi selecionado durante a instalação.
+
+O endereço NAT coincide com o do Kali porque cada máquina utiliza uma instância separada do NAT padrão do VirtualBox. A comunicação entre as duas máquinas neste exercício utiliza a rede interna `192.168.77.0/24`.
+
+### 06 — Teste de comunicação
+
+No Kali:
+
+```bash
+ping -c 4 192.168.77.20
+```
+
+Foram observadas quatro respostas do Ubuntu, com tempos entre `0.251 ms` e `0.372 ms`.
+
+**Conclusão:** houve comunicação entre Kali e Ubuntu pela rede interna. Esse teste não determina quais serviços estão disponíveis.
+
+### 07 — Identificação do SSH
+
+No Kali:
+
+```bash
+nmap -sV -p 22 192.168.77.20
+```
+
+Trecho do resultado:
+
+```text
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 10.2p1 Ubuntu 2ubuntu3.8 (Ubuntu Linux; protocol 2.0)
+```
+
+Interpretação:
+
+- `-p 22` limita a verificação à porta 22.
+- `-sV` tenta identificar o serviço e sua versão.
+- `open` indica que a porta está aceitando conexões.
+- O serviço identificado foi SSH, compatível com a instalação do OpenSSH no Ubuntu.
+
+**Limitação:** apenas a porta TCP 22 foi examinada. A identificação de versão não comprova uma vulnerabilidade.
+
+### 08 — Acesso remoto e confirmação do ambiente
+
+A conexão foi iniciada no Kali:
+
+```bash
+ssh netrunner@192.168.77.20
+```
+
+Após entrar, foram executados os seguintes comandos na sessão remota:
+
+```text
+netrunner@ubuntu-lab:~$ whoami
+netrunner
+netrunner@ubuntu-lab:~$ hostname
+ubuntu-lab
+```
+
+**Conclusão:** a sessão utilizou o usuário `netrunner` no servidor `ubuntu-lab`. O Kali atuou como cliente SSH; os comandos da sessão foram executados no Ubuntu.
+
 ## Progresso
 
 ### Preparação e reconhecimento do ambiente
