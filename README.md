@@ -126,6 +126,72 @@ default via 10.0.2.2 dev eth0 proto dhcp src 10.0.2.15 metric 100
 
 **Conclusão:** o Kali possui uma rota direta para `10.0.2.0/24` e uma rota padrão pelo gateway `10.0.2.2`.
 
+### 04 — Configuração da rede interna
+
+**Objetivo:** preparar uma interface dedicada à comunicação entre as máquinas do laboratório.
+
+Com o Kali desligado, o Adaptador 2 do VirtualBox foi habilitado em modo **Rede Interna**, com o nome `lab-cyber`. O Adaptador 1 permaneceu em NAT.
+
+No Kali, a segunda interface foi identificada como `eth1`.
+
+#### Problema encontrado
+
+O endereço configurado com `ip addr add` apareceu inicialmente, mas não permaneceu aplicado. Na verificação seguinte:
+
+- A interface `eth1` estava sem IPv4.
+- O NetworkManager indicava estado `disconnected`, sem conexão ativa.
+- A rota da rede do laboratório não estava presente.
+
+Esses resultados confirmaram a ausência da configuração, mas não determinaram a causa exata de sua remoção.
+
+#### Configuração permanente
+
+Foi criado um perfil no NetworkManager com endereço IPv4 manual e ativação automática:
+
+```bash
+sudo nmcli connection add type ethernet ifname eth1 con-name lab-cyber ipv4.method manual ipv4.addresses 192.168.77.10/24 ipv4.never-default yes connection.autoconnect yes
+```
+
+Em seguida, o perfil foi ativado:
+
+```bash
+sudo nmcli connection up lab-cyber
+```
+
+A opção `ipv4.never-default yes` impede que esse perfil seja utilizado como rota padrão IPv4.
+
+#### Validação após reiniciar
+
+Comando:
+
+```bash
+ip -4 -br addr
+```
+
+Resultado:
+
+```text
+lo               UNKNOWN        127.0.0.1/8
+eth0             UP             10.0.2.15/24
+eth1             UP             192.168.77.10/24
+```
+
+Comando:
+
+```bash
+ip -4 route
+```
+
+Resultado:
+
+```text
+default via 10.0.2.2 dev eth0 proto dhcp src 10.0.2.15 metric 100
+10.0.2.0/24 dev eth0 proto kernel scope link src 10.0.2.15 metric 100
+192.168.77.0/24 dev eth1 proto kernel scope link src 192.168.77.10 metric 101
+```
+
+**Conclusão:** o endereço IPv4 e a rota da rede interna permaneceram após reiniciar. A rota padrão continuou pelo adaptador NAT. A comunicação com outra máquina do laboratório ainda será testada.
+
 ## Progresso
 
 ### Preparação e reconhecimento do ambiente
