@@ -6,7 +6,7 @@
 
 Da configuração do ambiente à investigação de serviços: um registro prático de aprendizagem.
 
-[![Status: primeira versão concluída](https://img.shields.io/badge/status-em_andamento-2563eb?style=flat-square)](#progresso)
+[![Status: primeira versão concluída](https://img.shields.io/badge/status-v1_concluida-15803d?style=flat-square)](#progresso)
 [![Ambiente: VirtualBox](https://img.shields.io/badge/ambiente-VirtualBox-183A61?style=flat-square)](#ambiente)
 [![Sistema: Kali Linux](https://img.shields.io/badge/sistema-Kali_Linux-557C94?style=flat-square)](#ambiente)
 [![Tipo: laboratório pessoal](https://img.shields.io/badge/tipo-laboratório_pessoal-475569?style=flat-square)](#escopo)
@@ -21,7 +21,7 @@ Da configuração do ambiente à investigação de serviços: um registro práti
 
 Este projeto documenta a construção de um laboratório pessoal para estudar redes, Linux e fundamentos de segurança.
 
-O ponto de partida é uma máquina Kali Linux no VirtualBox. A evolução do projeto será registrada com comandos, resultados observados e explicações sobre as decisões tomadas.
+A primeira versão conecta Kali Linux e Ubuntu Server em uma rede interna do VirtualBox. Este registro apresenta a configuração do ambiente, os problemas encontrados e os resultados dos testes de comunicação, identificação de serviços e acesso remoto.
 
 ### Objetivos
 
@@ -40,16 +40,15 @@ O ponto de partida é uma máquina Kali Linux no VirtualBox. A evolução do pro
 | Sistema hospedeiro | Windows |
 | Memória RAM do computador | 16 GB |
 | Plataforma de virtualização | VirtualBox |
-| Máquina virtual | Kali Linux |
-| Modo do adaptador de rede | NAT |
-| Interface de rede no Kali | `eth0` |
-| Endereço IPv4 do Kali | `10.0.2.15/24` |
-| Rede diretamente conectada | `10.0.2.0/24` |
-| Gateway padrão | `10.0.2.2` |
+| Máquinas virtuais | Kali Linux e Ubuntu Server |
+| Adaptador 1 de cada VM | NAT, com instâncias separadas |
+| Adaptador 2 de cada VM | Rede Interna — `lab-cyber` |
+| IPv4 interno do Kali | `eth1` — `192.168.77.10/24` |
+| IPv4 interno do Ubuntu | `enp0s8` — `192.168.77.20/24` |
+| Rede do laboratório | `192.168.77.0/24` |
+| Serviço identificado | SSH — porta TCP 22 |
 
-Os endereços representam a configuração observada durante esta etapa e podem mudar.
-
-### Caminho da saída de rede
+Os endereços representam a configuração observada durante os exercícios.
 
 ### Topologia do laboratório
 
@@ -68,7 +67,7 @@ Cada VM também possui um adaptador NAT separado para conexões de saída.
 
 **Testes realizados do Kali para o Ubuntu:** ping, identificação das portas TCP 22 e 80 e acesso autenticado por SSH.
 
-O esquema representa o caminho configurado para saída. A conectividade com a internet ainda não foi validada neste registro.
+O diagrama representa a rede interna usada nos testes. A conectividade com a internet não foi validada neste registro.
 
 ## Diário técnico
 
@@ -80,7 +79,7 @@ A máquina Kali Linux já existia de um curso anterior. Para iniciar este projet
 2. A máquina virtual foi iniciada.
 3. O acesso à área de trabalho foi confirmado.
 
-**Motivo da escolha:** utilizar o NAT nesta etapa inicial para permitir conexões de saída pela rede do computador hospedeiro. Uma rede separada será preparada para os exercícios entre máquinas virtuais.
+**Motivo da escolha:** utilizar o NAT nesta etapa inicial para permitir conexões de saída pela rede do computador hospedeiro. Naquela etapa, a rede interna ainda seria preparada; sua configuração está registrada na etapa 04.
 
 ### 02 — Identificação das interfaces
 
@@ -195,7 +194,7 @@ default via 10.0.2.2 dev eth0 proto dhcp src 10.0.2.15 metric 100
 192.168.77.0/24 dev eth1 proto kernel scope link src 192.168.77.10 metric 101
 ```
 
-**Conclusão:** o endereço IPv4 e a rota da rede interna permaneceram após reiniciar. A rota padrão continuou pelo adaptador NAT. A comunicação com outra máquina do laboratório ainda será testada.
+**Conclusão:** o endereço IPv4 e a rota da rede interna permaneceram após reiniciar. A rota padrão continuou pelo adaptador NAT. Naquele momento, a comunicação com outra máquina ainda não havia sido testada; a validação está registrada na etapa 06.
 
 ### 05 — Adição do servidor Ubuntu
 
@@ -312,13 +311,14 @@ Foram validados:
 - [x] Identificar o gateway padrão.
 - [x] Registrar a configuração inicial no README.
 - [x] Documentar resultados, limitações e conclusões.
-### Próximas etapas
 
-- [ ] Preparar uma rede separada para os exercícios.
-- [ ] Adicionar uma máquina de laboratório.
-- [ ] Validar a comunicação entre as máquinas.
-- [ ] Identificar portas e serviços do alvo de laboratório.
+### Rede interna e testes
 
+- [x] Preparar uma rede separada para os exercícios.
+- [x] Adicionar uma máquina de laboratório.
+- [x] Validar a comunicação entre as máquinas.
+- [x] Identificar o SSH e verificar as portas TCP 22 e 80 do Ubuntu.
+- [x] Validar o acesso remoto autenticado.
 
 ## Aprendizados
 
@@ -335,7 +335,7 @@ Foram validados:
 
 Este repositório registra **atividades de aprendizagem em laboratório** e não representa experiência profissional em pentest.
 
-Os exercícios serão realizados em máquinas próprias ou ambientes expressamente autorizados, utilizando dados fictícios ou públicos. A documentação publicada não deve conter credenciais ou informações confidenciais.
+Os exercícios desta versão foram realizados em máquinas virtuais próprias. Atividades futuras seguirão o mesmo escopo ou utilizarão ambientes expressamente autorizados, com dados fictícios ou públicos. A documentação publicada não deve conter credenciais ou informações confidenciais.
 
 ---
 
