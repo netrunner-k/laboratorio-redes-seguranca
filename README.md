@@ -260,6 +260,42 @@ ubuntu-lab
 
 **Conclusão:** a sessão utilizou o usuário `netrunner` no servidor `ubuntu-lab`. O Kali atuou como cliente SSH; os comandos da sessão foram executados no Ubuntu.
 
+### 09 — Comparação entre porta aberta e fechada
+
+No Kali, foram verificadas duas portas TCP do Ubuntu:
+
+```bash
+nmap -sV -p 22,80 192.168.77.20
+```
+
+Resultado principal:
+
+```text
+PORT   STATE  SERVICE VERSION
+22/tcp open   ssh     OpenSSH 10.2p1 Ubuntu 2ubuntu3.8 (Ubuntu Linux; protocol 2.0)
+80/tcp closed http
+```
+
+#### Interpretação
+
+- **22/TCP aberta:** o serviço SSH estava acessível. O acesso com o usuário do laboratório já havia sido validado na etapa anterior.
+- **80/TCP fechada:** o alvo respondeu, mas não havia serviço aceitando conexões nessa porta.
+- O nome `http` associa a porta 80 ao seu uso habitual; não comprova a presença de um servidor web.
+
+### Conclusão da primeira versão
+
+Foi montado um laboratório com Kali Linux e Ubuntu Server conectados pela rede interna `lab-cyber`.
+
+Foram validados:
+
+- Endereçamento e rotas do Kali, incluindo persistência após reiniciar.
+- Comunicação do Kali com o Ubuntu.
+- Identificação do serviço SSH.
+- Acesso remoto autenticado e execução de comandos no Ubuntu.
+- Comparação entre uma porta TCP aberta e uma fechada.
+
+**Limitações:** a verificação de serviços ficou restrita às portas TCP 22 e 80. Não foram avaliadas vulnerabilidades, resistência das senhas ou configurações de segurança do SSH. Os resultados não permitem concluir que o servidor é seguro ou vulnerável.
+
 ## Progresso
 
 ### Preparação e reconhecimento do ambiente
