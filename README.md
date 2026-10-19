@@ -6,7 +6,7 @@
 
 Da configuração do ambiente à investigação de serviços: um registro prático de aprendizagem.
 
-[![Status: primeira versão concluída](https://img.shields.io/badge/status-v1_concluida-15803d?style=flat-square)](#progresso)
+[![Status: v2 em andamento](https://img.shields.io/badge/status-v2_em_andamento-2563eb?style=flat-square)](#progresso)
 [![Ambiente: VirtualBox](https://img.shields.io/badge/ambiente-VirtualBox-183A61?style=flat-square)](#ambiente)
 [![Sistema: Kali Linux](https://img.shields.io/badge/sistema-Kali_Linux-557C94?style=flat-square)](#ambiente)
 [![Tipo: laboratório pessoal](https://img.shields.io/badge/tipo-laboratório_pessoal-475569?style=flat-square)](#escopo)
@@ -299,6 +299,112 @@ Foram validados:
 - Comparação entre uma porta TCP aberta e uma fechada.
 
 **Limitações:** a verificação de serviços ficou restrita às portas TCP 22 e 80. Não foram avaliadas vulnerabilidades, resistência das senhas ou configurações de segurança do SSH. Os resultados não permitem concluir que o servidor é seguro ou vulnerável.
+
+## V2 — Serviço web e estado da porta 80
+
+### Objetivo
+
+Observar como iniciar e parar um servidor web afeta a porta TCP 80 e o acesso pelo navegador.
+
+### Instalação no Ubuntu
+
+Os comandos foram executados no Ubuntu por uma sessão SSH iniciada no Kali:
+
+```bash
+sudo apt update
+sudo apt install nginx
+systemctl is-active nginx
+```
+
+A consulta retornou `active`.
+
+### Verificação pelo Kali
+
+```bash
+nmap -sV -p 22,80 192.168.77.20
+```
+
+A porta 80, que estava fechada no teste da primeira versão, passou a aparecer como aberta.
+
+No navegador do Kali, o endereço abaixo exibiu a página padrão “Welcome to nginx!”:
+
+```text
+http://192.168.77.20
+```
+
+### Teste com o serviço parado
+
+Na sessão SSH do Ubuntu:
+
+```bash
+sudo systemctl stop nginx
+```
+
+Após repetir a verificação pelo Kali, a porta 80 apareceu como fechada. O navegador também deixou de acessar a página.
+
+### Reinício do serviço
+
+No Ubuntu:
+
+```bash
+sudo systemctl start nginx
+systemctl is-active nginx
+```
+
+O estado voltou a ser `active`, e a página ficou acessível novamente no navegador do Kali.
+
+### Resultados observados
+
+| Situação | Porta TCP 80 | Acesso pelo navegador |
+| :--- | :--- | :--- |
+| Antes da instalação | Fechada | Não testado nessa etapa |
+| Nginx em execução | Aberta | Página padrão exibida |
+| Nginx parado | Fechada | Falha de conexão |
+| Nginx iniciado novamente | Não verificada novamente com Nmap | Página acessível novamente |
+
+### Aprendizado
+
+Neste exercício, observei a relação entre um serviço em execução,
+
+### Página própria e análise dos registros HTTP
+
+Acompanhei os acessos ao Nginx no terminal do Ubuntu:
+
+```bash
+sudo tail -f /var/log/nginx/access.log
+```
+
+No navegador do Kali, acessei `/teste-netrunner` antes de criar o arquivo. O servidor registrou:
+
+```text
+192.168.77.10 - - [19/Oct/2026:12:57:43 +0000] "GET /teste-netrunner HTTP/1.1" 404 134
+```
+
+Depois de criar o arquivo, o mesmo caminho passou a retornar `200`. Porém, o navegador baixou o arquivo em vez de exibir a página diretamente.
+
+Renomeei o arquivo para incluir a extensão `.html`:
+
+```bash
+sudo mv /var/www/html/teste-netrunner /var/www/html/teste-netrunner.html
+```
+
+Ao acessar `http://192.168.77.20/teste-netrunner.html`, a página foi exibida diretamente no navegador. O log registrou:
+
+```text
+192.168.77.10 - - [19/Oct/2026:13:00:51 +0000] "GET /teste-netrunner.html HTTP/1.1" 200 203
+```
+
+Os trechos acima foram abreviados após o campo de tamanho da resposta.
+
+#### O que observei
+
+- O IP `192.168.77.10` identifica o Kali neste laboratório.
+- `GET` indica o pedido de um recurso.
+- `404` indicou que o caminho solicitado não foi encontrado.
+- `200` indicou que a requisição foi atendida com sucesso.
+- Um código `200` não garante que o navegador exibiu uma página: também ocorreu quando o arquivo foi baixado.
+
+A porta 80 permaneceu aberta durante esses testes. A resposta HTTP mudou conforme o recurso solicitado estava disponível.
 
 ## Progresso
 
