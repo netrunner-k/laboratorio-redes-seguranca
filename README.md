@@ -2,74 +2,250 @@
 
 # Laboratório de Redes e Segurança
 
-**Redes · Linux · Fundamentos de Segurança**
+**Redes · Linux · SSH · Nginx · Logs HTTP**
 
-Da configuração do ambiente à investigação de serviços: um registro prático de aprendizagem.
+Duas máquinas virtuais, uma rede interna e testes para entender como os serviços respondem.
 
-[![Status: v2 em andamento](https://img.shields.io/badge/status-v2_em_andamento-2563eb?style=flat-square)](#progresso)
-[![Ambiente: VirtualBox](https://img.shields.io/badge/ambiente-VirtualBox-183A61?style=flat-square)](#ambiente)
-[![Sistema: Kali Linux](https://img.shields.io/badge/sistema-Kali_Linux-557C94?style=flat-square)](#ambiente)
-[![Tipo: laboratório pessoal](https://img.shields.io/badge/tipo-laboratório_pessoal-475569?style=flat-square)](#escopo)
+[![Status: v2 concluída](https://img.shields.io/badge/status-v2_concluida-15803d?style=flat-square)](#v2)
+[![VirtualBox](https://img.shields.io/badge/ambiente-VirtualBox-183A61?style=flat-square)](#ambiente)
+[![Laboratório pessoal](https://img.shields.io/badge/tipo-laboratorio_pessoal-475569?style=flat-square)](#escopo)
 
-[Visão geral](#visão-geral) · [Ambiente](#ambiente) · [Diário técnico](#diário-técnico) · [Progresso](#progresso) · [Aprendizados](#aprendizados)
+[Resultados](#resultados) · [Mapa da rede](#mapa) · [V2 — Web e logs](#v2) · [V1 — Histórico](#v1) · [Ambiente](#ambiente)
 
 </div>
 
 ---
 
-## Visão geral
+Estudo prático com Kali Linux e Ubuntu Server no VirtualBox. Comecei configurando a rede e o acesso SSH. Na v2, instalei o Nginx, comparei o comportamento da porta 80 com o serviço ativo e parado e acompanhei requisições no log do servidor.
 
-Este projeto documenta a construção de um laboratório pessoal para estudar redes, Linux e fundamentos de segurança.
+**Status:** v1 e v2 concluídas dentro do escopo descrito abaixo.
 
-A primeira versão conecta Kali Linux e Ubuntu Server em uma rede interna do VirtualBox. Este registro apresenta a configuração do ambiente, os problemas encontrados e os resultados dos testes de comunicação, identificação de serviços e acesso remoto.
+<a id="resultados"></a>
+## Resultados em uma leitura
 
-### Objetivos
-
-- Interpretar interfaces de rede, endereços IP e tabelas de rotas.
-- Compreender a comunicação entre máquinas virtuais.
-- Preparar uma rede separada para exercícios de segurança.
-- Identificar serviços e analisar os resultados com contexto.
-- Praticar documentação técnica e controle de versões com Git e GitHub.
-
-> **Etapa atual:** Rede interna, identificação de serviços e acesso SSH validados.
-
-## Ambiente
-
-| Componente | Configuração observada |
+| O que testei | O que observei |
 | :--- | :--- |
-| Sistema hospedeiro | Windows |
-| Memória RAM do computador | 16 GB |
-| Plataforma de virtualização | VirtualBox |
-| Máquinas virtuais | Kali Linux e Ubuntu Server |
-| Adaptador 1 de cada VM | NAT, com instâncias separadas |
-| Adaptador 2 de cada VM | Rede Interna — `lab-cyber` |
-| IPv4 interno do Kali | `eth1` — `192.168.77.10/24` |
-| IPv4 interno do Ubuntu | `enp0s8` — `192.168.77.20/24` |
-| Rede do laboratório | `192.168.77.0/24` |
-| Serviço identificado | SSH — porta TCP 22 |
+| Comunicação entre as VMs | O Ubuntu respondeu aos quatro pedidos de ping do Kali. |
+| Acesso SSH | Consegui executar comandos no Ubuntu a partir do Kali. |
+| Nginx ativo | Porta 80 aberta e página padrão acessível. |
+| Nginx parado | Porta 80 fechada e falha de conexão no navegador. |
+| Nginx iniciado novamente | Estado `active` e página acessível novamente. |
+| Caminho inexistente | Resposta HTTP `404` registrada no log. |
+| Arquivo disponível | Resposta HTTP `200`; após usar `.html`, a página foi exibida diretamente. |
 
-Os endereços representam a configuração observada durante os exercícios.
-
-### Topologia do laboratório
+<a id="mapa"></a>
+## Mapa da rede
 
 ```mermaid
-flowchart LR
-    K["Kali Linux<br/>eth1: 192.168.77.10/24"]
-    R["Rede Interna: lab-cyber<br/>192.168.77.0/24"]
-    U["Ubuntu Server<br/>enp0s8: 192.168.77.20/24"]
-
-    K --- R
-    R --- U
+flowchart TB
+    subgraph LAB["Rede interna: lab-cyber · 192.168.77.0/24"]
+        direction LR
+        K["Kali Linux<br/>eth1: 192.168.77.10<br/>Nmap · SSH · Firefox"]
+        U["Ubuntu Server<br/>enp0s8: 192.168.77.20"]
+        S["SSH · TCP 22<br/>Acesso remoto"]
+        W["Nginx · TCP 80<br/>Página HTML"]
+        L["access.log<br/>Registro das requisições"]
+        K -->|"Testes pela rede interna"| U
+        U --- S
+        U --- W
+        W --> L
+    end
+    classDef cliente fill:#172554,color:#eff6ff,stroke:#60a5fa
+    classDef servidor fill:#064e3b,color:#ecfdf5,stroke:#34d399
+    classDef registro fill:#422006,color:#fffbeb,stroke:#fbbf24
+    class K cliente
+    class U,S,W servidor
+    class L registro
 ```
 
-As máquinas se comunicam pela rede interna `lab-cyber`.
-Cada VM também possui um adaptador NAT separado para conexões de saída.
+Cada VM também tem um adaptador NAT separado para conexões de saída, omitido do desenho. Os testes entre Kali e Ubuntu usaram a rede interna. O desenho não representa segmentação entre os serviços do Ubuntu.
 
-**Testes realizados do Kali para o Ubuntu:** ping, identificação das portas TCP 22 e 80 e acesso autenticado por SSH.
+<a id="v2"></a>
+## V2 — Serviço web e registros HTTP
 
-O diagrama representa a rede interna usada nos testes. A conectividade com a internet não foi validada neste registro.
+**Pergunta do exercício:** o que muda na porta, no navegador e no log quando altero o serviço ou o arquivo solicitado?
 
-## Diário técnico
+### Serviço ativo e parado
+
+| Etapa | Porta TCP 80 | Navegador |
+| :--- | :--- | :--- |
+| Antes de instalar o Nginx | `closed` | Não testado nessa etapa |
+| Depois de instalar e iniciar | `open` | “Welcome to nginx!” |
+| Depois de parar o Nginx | `closed` | Falha de conexão |
+| Depois de iniciar novamente | Não repetido com Nmap nessa etapa | Página acessível novamente |
+
+**O que aprendi:** parar o serviço não desinstala o programa. Nesse teste, isso interrompeu as conexões à porta 80. Uma porta aberta, por si só, não confirma uma vulnerabilidade.
+
+### Do pedido à evidência
+
+```mermaid
+sequenceDiagram
+    participant K as Firefox no Kali
+    participant N as Nginx no Ubuntu
+    participant L as access.log
+    K->>N: GET /teste-netrunner (arquivo ausente)
+    N-->>K: 404 Not Found
+    N->>L: Registra origem, caminho e resposta 404
+    Note over K,N: Arquivo criado no Ubuntu
+    K->>N: GET /teste-netrunner
+    N-->>K: 200 OK (arquivo baixado)
+    N->>L: Registra resposta 200
+    Note over K,N: Arquivo renomeado com extensão .html
+    K->>N: GET /teste-netrunner.html
+    N-->>K: 200 OK (página exibida)
+    N->>L: Registra o novo caminho e a resposta 200
+```
+
+A página própria foi acessada em `http://192.168.77.20/teste-netrunner.html`.
+
+**O que aprendi:** a porta 80 estava aberta tanto no `404` quanto no `200`. O código HTTP descreve a resposta ao pedido; o estado da porta descreve se há um serviço aceitando conexões.
+
+<details>
+<summary><strong>Ver evidências do log: antes e depois</strong></summary>
+
+Trechos reais, abreviados após o campo de tamanho da resposta:
+
+```text
+192.168.77.10 - - [19/Oct/2026:12:57:43 +0000] "GET /teste-netrunner HTTP/1.1" 404 134
+192.168.77.10 - - [19/Oct/2026:12:58:38 +0000] "GET /teste-netrunner HTTP/1.1" 200 221
+192.168.77.10 - - [19/Oct/2026:13:00:51 +0000] "GET /teste-netrunner.html HTTP/1.1" 200 203
+```
+
+| Campo | Leitura neste laboratório |
+| :--- | :--- |
+| `192.168.77.10` | IP do Kali, que fez os pedidos. |
+| `+0000` | Deslocamento UTC dos horários registrados no servidor. |
+| `GET` | Método usado para solicitar o recurso. |
+| `/teste-netrunner.html` | Caminho solicitado. |
+| `404` / `200` | Não encontrado / requisição atendida com sucesso. |
+| Número após o código | Quantidade de bytes do corpo da resposta registrada. |
+
+Os tamanhos registrados variaram entre os pedidos. A causa dessa diferença não foi investigada; renomear um arquivo, sozinho, não modifica seu conteúdo.
+
+</details>
+
+<details>
+<summary><strong>Ver procedimentos e comandos da v2</strong></summary>
+
+### Objetivo
+
+Observar como iniciar e parar um servidor web afeta a porta TCP 80 e o acesso pelo navegador.
+
+### Instalação no Ubuntu
+
+Os comandos foram executados no Ubuntu por uma sessão SSH iniciada no Kali:
+
+```bash
+sudo apt update
+sudo apt install nginx
+systemctl is-active nginx
+```
+
+A consulta retornou `active`.
+
+### Verificação pelo Kali
+
+```bash
+nmap -sV -p 22,80 192.168.77.20
+```
+
+A porta 80, que estava fechada no teste da primeira versão, passou a aparecer como aberta.
+
+No navegador do Kali, o endereço abaixo exibiu a página padrão “Welcome to nginx!”:
+
+```text
+http://192.168.77.20
+```
+
+### Teste com o serviço parado
+
+Na sessão SSH do Ubuntu:
+
+```bash
+sudo systemctl stop nginx
+```
+
+Após repetir a verificação pelo Kali, a porta 80 apareceu como fechada. O navegador também deixou de acessar a página.
+
+### Reinício do serviço
+
+No Ubuntu:
+
+```bash
+sudo systemctl start nginx
+systemctl is-active nginx
+```
+
+O estado voltou a ser `active`, e a página ficou acessível novamente no navegador do Kali.
+
+### Resultados observados
+
+| Situação | Porta TCP 80 | Acesso pelo navegador |
+| :--- | :--- | :--- |
+| Antes da instalação | Fechada | Não testado nessa etapa |
+| Nginx em execução | Aberta | Página padrão exibida |
+| Nginx parado | Fechada | Falha de conexão |
+| Nginx iniciado novamente | Não verificada novamente com Nmap | Página acessível novamente |
+
+### Aprendizado
+
+Neste exercício, observei a relação entre um serviço em execução, uma porta aberta e o acesso à aplicação. Parar o Nginx interrompeu o acesso web sem desinstalar o programa.
+
+### Página própria e análise dos registros HTTP
+
+Acompanhei os acessos ao Nginx no terminal do Ubuntu:
+
+```bash
+sudo tail -f /var/log/nginx/access.log
+```
+
+No navegador do Kali, acessei `/teste-netrunner` antes de criar o arquivo. O servidor registrou:
+
+```text
+192.168.77.10 - - [19/Oct/2026:12:57:43 +0000] "GET /teste-netrunner HTTP/1.1" 404 134
+```
+
+Depois de criar o arquivo, o mesmo caminho passou a retornar `200`. Porém, o navegador baixou o arquivo em vez de exibir a página diretamente.
+
+Renomeei o arquivo para incluir a extensão `.html`:
+
+```bash
+sudo mv /var/www/html/teste-netrunner /var/www/html/teste-netrunner.html
+```
+
+Ao acessar `http://192.168.77.20/teste-netrunner.html`, a página foi exibida diretamente no navegador. O log registrou:
+
+```text
+192.168.77.10 - - [19/Oct/2026:13:00:51 +0000] "GET /teste-netrunner.html HTTP/1.1" 200 203
+```
+
+Os trechos acima foram abreviados após o campo de tamanho da resposta.
+
+#### O que observei
+
+- O IP `192.168.77.10` identifica o Kali neste laboratório.
+- `GET` indica o pedido de um recurso.
+- `404` indicou que o caminho solicitado não foi encontrado.
+- `200` indicou que a requisição foi atendida com sucesso.
+- Um código `200` não garante que o navegador exibiu uma página: também ocorreu quando o arquivo foi baixado.
+
+A porta 80 permaneceu aberta durante esses testes. A resposta HTTP mudou conforme o recurso solicitado estava disponível.
+
+</details>
+
+### Conclusão da v2
+
+Consegui relacionar uma ação no servidor ao resultado visto pelo cliente e ao registro no log. Também encontrei um detalhe que não esperava: receber `200` não garantiu que o navegador exibisse a página, pois inicialmente ele baixou o arquivo. Após acrescentar `.html` ao nome, confirmei a exibição diretamente no navegador.
+
+Os testes foram funcionais e de observação. Não fiz avaliação de vulnerabilidades, teste de força de senhas ou análise de exposição pela internet.
+
+<a id="v1"></a>
+## V1 — Rede interna e SSH
+
+**Concluída.** Configurei a rede interna, corrigi a persistência do IPv4 do Kali, validei a comunicação com o Ubuntu e testei o acesso SSH. A porta 22 estava aberta e a 80, fechada nessa versão.
+
+<details>
+<summary><strong>Abrir diário completo da v1 — configuração, problema encontrado e testes</strong></summary>
 
 ### 01 — Preparação da máquina virtual
 
@@ -300,148 +476,55 @@ Foram validados:
 
 **Limitações:** a verificação de serviços ficou restrita às portas TCP 22 e 80. Não foram avaliadas vulnerabilidades, resistência das senhas ou configurações de segurança do SSH. Os resultados não permitem concluir que o servidor é seguro ou vulnerável.
 
-## V2 — Serviço web e estado da porta 80
+</details>
 
-### Objetivo
+<a id="ambiente"></a>
+## Ambiente
 
-Observar como iniciar e parar um servidor web afeta a porta TCP 80 e o acesso pelo navegador.
+| Componente | Configuração observada |
+| :--- | :--- |
+| Hospedeiro | Windows · 16 GB de RAM |
+| Virtualização | VirtualBox |
+| Máquinas virtuais | Kali Linux e Ubuntu Server |
+| Rede dos testes | Rede Interna `lab-cyber` · `192.168.77.0/24` |
+| Kali na rede interna | `eth1` · `192.168.77.10/24` |
+| Ubuntu na rede interna | `enp0s8` · `192.168.77.20/24` |
+| Adaptador 1 de cada VM | NAT, com instâncias separadas |
+| IPv4 NAT observado em cada VM | `10.0.2.15/24` |
+| Gateway NAT | `10.0.2.2` |
+| Serviços estudados no Ubuntu | OpenSSH · TCP 22 / Nginx · TCP 80 |
 
-### Instalação no Ubuntu
-
-Os comandos foram executados no Ubuntu por uma sessão SSH iniciada no Kali:
-
-```bash
-sudo apt update
-sudo apt install nginx
-systemctl is-active nginx
-```
-
-A consulta retornou `active`.
-
-### Verificação pelo Kali
-
-```bash
-nmap -sV -p 22,80 192.168.77.20
-```
-
-A porta 80, que estava fechada no teste da primeira versão, passou a aparecer como aberta.
-
-No navegador do Kali, o endereço abaixo exibiu a página padrão “Welcome to nginx!”:
-
-```text
-http://192.168.77.20
-```
-
-### Teste com o serviço parado
-
-Na sessão SSH do Ubuntu:
-
-```bash
-sudo systemctl stop nginx
-```
-
-Após repetir a verificação pelo Kali, a porta 80 apareceu como fechada. O navegador também deixou de acessar a página.
-
-### Reinício do serviço
-
-No Ubuntu:
-
-```bash
-sudo systemctl start nginx
-systemctl is-active nginx
-```
-
-O estado voltou a ser `active`, e a página ficou acessível novamente no navegador do Kali.
-
-### Resultados observados
-
-| Situação | Porta TCP 80 | Acesso pelo navegador |
-| :--- | :--- | :--- |
-| Antes da instalação | Fechada | Não testado nessa etapa |
-| Nginx em execução | Aberta | Página padrão exibida |
-| Nginx parado | Fechada | Falha de conexão |
-| Nginx iniciado novamente | Não verificada novamente com Nmap | Página acessível novamente |
-
-### Aprendizado
-
-Neste exercício, observei a relação entre um serviço em execução,
-
-### Página própria e análise dos registros HTTP
-
-Acompanhei os acessos ao Nginx no terminal do Ubuntu:
-
-```bash
-sudo tail -f /var/log/nginx/access.log
-```
-
-No navegador do Kali, acessei `/teste-netrunner` antes de criar o arquivo. O servidor registrou:
-
-```text
-192.168.77.10 - - [19/Oct/2026:12:57:43 +0000] "GET /teste-netrunner HTTP/1.1" 404 134
-```
-
-Depois de criar o arquivo, o mesmo caminho passou a retornar `200`. Porém, o navegador baixou o arquivo em vez de exibir a página diretamente.
-
-Renomeei o arquivo para incluir a extensão `.html`:
-
-```bash
-sudo mv /var/www/html/teste-netrunner /var/www/html/teste-netrunner.html
-```
-
-Ao acessar `http://192.168.77.20/teste-netrunner.html`, a página foi exibida diretamente no navegador. O log registrou:
-
-```text
-192.168.77.10 - - [19/Oct/2026:13:00:51 +0000] "GET /teste-netrunner.html HTTP/1.1" 200 203
-```
-
-Os trechos acima foram abreviados após o campo de tamanho da resposta.
-
-#### O que observei
-
-- O IP `192.168.77.10` identifica o Kali neste laboratório.
-- `GET` indica o pedido de um recurso.
-- `404` indicou que o caminho solicitado não foi encontrado.
-- `200` indicou que a requisição foi atendida com sucesso.
-- Um código `200` não garante que o navegador exibiu uma página: também ocorreu quando o arquivo foi baixado.
-
-A porta 80 permaneceu aberta durante esses testes. A resposta HTTP mudou conforme o recurso solicitado estava disponível.
+O mesmo IPv4 NAT aparece nas duas VMs porque cada uma usa uma instância separada do NAT padrão do VirtualBox. A comunicação entre elas foi testada pelos endereços da rede interna.
 
 ## Progresso
 
-### Preparação e reconhecimento do ambiente
+| Versão | Entrega | Estado |
+| :--- | :--- | :--- |
+| V1 | Rede interna, endereçamento persistente, ping e SSH | Concluída |
+| V2 | Nginx, comparação da porta 80, página própria e logs HTTP | Concluída |
 
-- [x] Iniciar o Kali Linux no VirtualBox.
-- [x] Alterar o adaptador de bridge para NAT.
-- [x] Consultar interfaces e endereços.
-- [x] Identificar a rede diretamente conectada.
-- [x] Identificar o gateway padrão.
-- [x] Registrar a configuração inicial no README.
-- [x] Documentar resultados, limitações e conclusões.
+<details>
+<summary><strong>Ver checklist dos testes e da documentação</strong></summary>
 
-### Rede interna e testes
+- [x] Configurar a rede interna no VirtualBox.
+- [x] Validar o IPv4 e as rotas do Kali após reiniciar.
+- [x] Adicionar o Ubuntu e testar a comunicação.
+- [x] Identificar o SSH e validar o acesso autenticado.
+- [x] Comparar as portas TCP 22 e 80 na v1.
+- [x] Instalar o Nginx e verificar seu estado.
+- [x] Verificar a porta 80 com o serviço ativo e parado.
+- [x] Iniciar o Nginx novamente e confirmar o acesso web.
+- [x] Criar uma página própria e exibi-la no navegador.
+- [x] Correlacionar pedidos HTTP com o log do servidor.
+- [x] Documentar os resultados e as limitações.
 
-- [x] Preparar uma rede separada para os exercícios.
-- [x] Adicionar uma máquina de laboratório.
-- [x] Validar a comunicação entre as máquinas.
-- [x] Identificar o SSH e verificar as portas TCP 22 e 80 do Ubuntu.
-- [x] Validar o acesso remoto autenticado.
-
-## Aprendizados
-
-| Conceito | Entendimento trabalhado |
-| :--- | :--- |
-| Interface de rede | É o ponto de conexão do sistema com uma rede física ou virtual. |
-| Loopback | Permite que o sistema se comunique consigo mesmo. |
-| Endereço IP | Identifica uma interface dentro de uma rede. |
-| Prefixo `/24` | Indica que os primeiros 24 bits do endereço IPv4 representam a parte da rede. |
-| Gateway padrão | É o próximo salto utilizado para destinos sem uma rota mais específica. |
-| Porta aberta | Indica um serviço aceitando comunicação; não confirma, sozinha, uma vulnerabilidade. |
+</details>
 
 ## Escopo
 
-Este repositório registra **atividades de aprendizagem em laboratório** e não representa experiência profissional em pentest.
+Laboratório pessoal de aprendizagem, realizado em máquinas virtuais próprias. Este projeto não representa experiência profissional em pentest.
 
-Os exercícios desta versão foram realizados em máquinas virtuais próprias. Atividades futuras seguirão o mesmo escopo ou utilizarão ambientes expressamente autorizados, com dados fictícios ou públicos. A documentação publicada não deve conter credenciais ou informações confidenciais.
+As verificações de portas ficaram restritas às portas TCP 22 e 80. Os resultados não permitem concluir que o servidor é seguro ou vulnerável. Não foram publicados credenciais nem endereços globais das interfaces.
 
 ---
 
@@ -449,6 +532,6 @@ Os exercícios desta versão foram realizados em máquinas virtuais próprias. A
 
 Criado e mantido por [netrunner-k](https://github.com/netrunner-k)
 
-**Observar → entender → praticar → documentar**
+**Configurar → testar → observar → documentar**
 
 </div>
