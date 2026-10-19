@@ -6,7 +6,7 @@
 
 Da configuração do ambiente à investigação de serviços: um registro prático de aprendizagem.
 
-[![Status: em andamento](https://img.shields.io/badge/status-em_andamento-2563eb?style=flat-square)](#progresso)
+[![Status: primeira versão concluída](https://img.shields.io/badge/status-em_andamento-2563eb?style=flat-square)](#progresso)
 [![Ambiente: VirtualBox](https://img.shields.io/badge/ambiente-VirtualBox-183A61?style=flat-square)](#ambiente)
 [![Sistema: Kali Linux](https://img.shields.io/badge/sistema-Kali_Linux-557C94?style=flat-square)](#ambiente)
 [![Tipo: laboratório pessoal](https://img.shields.io/badge/tipo-laboratório_pessoal-475569?style=flat-square)](#escopo)
@@ -31,7 +31,7 @@ O ponto de partida é uma máquina Kali Linux no VirtualBox. A evolução do pro
 - Identificar serviços e analisar os resultados com contexto.
 - Praticar documentação técnica e controle de versões com Git e GitHub.
 
-> **Etapa atual:** identificação da configuração de rede do Kali. A máquina de laboratório para os próximos exercícios ainda não foi adicionada.
+> **Etapa atual:** Rede interna, identificação de serviços e acesso SSH validados.
 
 ## Ambiente
 
@@ -51,17 +51,22 @@ Os endereços representam a configuração observada durante esta etapa e podem 
 
 ### Caminho da saída de rede
 
-```text
-Kali Linux
-eth0 · 10.0.2.15/24
-        │
-        ▼
-Gateway virtual
-10.0.2.2 · NAT do VirtualBox
-        │
-        ▼
-Conexão de rede do Windows
+### Topologia do laboratório
+
+```mermaid
+flowchart LR
+    K["Kali Linux<br/>eth1: 192.168.77.10/24"]
+    R["Rede Interna: lab-cyber<br/>192.168.77.0/24"]
+    U["Ubuntu Server<br/>enp0s8: 192.168.77.20/24"]
+
+    K --- R
+    R --- U
 ```
+
+As máquinas se comunicam pela rede interna `lab-cyber`.
+Cada VM também possui um adaptador NAT separado para conexões de saída.
+
+**Testes realizados do Kali para o Ubuntu:** ping, identificação das portas TCP 22 e 80 e acesso autenticado por SSH.
 
 O esquema representa o caminho configurado para saída. A conectividade com a internet ainda não foi validada neste registro.
 
@@ -306,14 +311,14 @@ Foram validados:
 - [x] Identificar a rede diretamente conectada.
 - [x] Identificar o gateway padrão.
 - [x] Registrar a configuração inicial no README.
-
+- [x] Documentar resultados, limitações e conclusões.
 ### Próximas etapas
 
 - [ ] Preparar uma rede separada para os exercícios.
 - [ ] Adicionar uma máquina de laboratório.
 - [ ] Validar a comunicação entre as máquinas.
 - [ ] Identificar portas e serviços do alvo de laboratório.
-- [ ] Documentar resultados, limitações e conclusões.
+
 
 ## Aprendizados
 
